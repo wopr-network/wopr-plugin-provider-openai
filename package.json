@@ -1,11 +1,14 @@
 {
   "name": "wopr-plugin-provider-codex",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Codex agent SDK provider for WOPR",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -26,8 +29,8 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
-    "@types/node": "^18.0.0",
-    "typescript": "^5.0.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.3.0"
   },
   "wopr": {
     "plugin": {
@@ -35,5 +38,8 @@
       "category": "provider",
       "description": "Codex agent SDK"
     }
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }
