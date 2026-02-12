@@ -332,9 +332,8 @@ const codexProvider: ModelProvider & {
       logger.info(`[codex] validateCredentials() testing API key...`);
       const { Codex } = await loadCodexSDK();
       const codex = new Codex({ apiKey: credential });
-      // Start a minimal thread to validate
-      const thread = codex.startThread();
       // Thread creation succeeds if credentials are valid
+      const thread = codex.startThread();
       logger.info(`[codex] validateCredentials() API key valid: ${!!thread}`);
       return !!thread;
     } catch (error) {
@@ -394,22 +393,19 @@ class CodexClient implements ModelClient {
       const auth = getAuth();
       logger.info(`[codex] getCodex() auth result: ${auth ? auth.type : 'null'}, authType: ${this.authType}`);
 
-      if (this.authType === "oauth" && auth?.accessToken) {
-        logger.info(`[codex] getCodex() creating Codex with OAuth token...`);
-        // Use OAuth access token
-        this.codex = new Codex({
-          accessToken: auth.accessToken,
-          ...this.options,
-        });
-        logger.info(`[codex] Initialized with OAuth (${auth.email || "user"})`);
-      } else if (this.credential) {
+      // SDK 0.99+ uses apiKey option or inherits from OPENAI_API_KEY env var.
+      // OAuth is handled by the Codex CLI (codex login) and the SDK picks it up
+      // automatically from ~/.codex/auth.json — no need to pass accessToken.
+      const apiKey = this.credential || auth?.apiKey;
+      if (apiKey) {
         logger.info(`[codex] getCodex() creating Codex with API key...`);
-        // Use API key
-        this.codex = new Codex({
-          apiKey: this.credential,
-          ...this.options,
-        });
+        this.codex = new Codex({ apiKey });
         logger.info(`[codex] Initialized with API key`);
+      } else if (this.authType === "oauth") {
+        logger.info(`[codex] getCodex() creating Codex (OAuth via CLI auth)...`);
+        // SDK reads OAuth tokens from ~/.codex/auth.json automatically
+        this.codex = new Codex();
+        logger.info(`[codex] Initialized with OAuth (${auth?.email || "user"})`);
       } else {
         logger.error(`[codex] getCodex() NO VALID CREDENTIALS - authType=${this.authType}, hasAuth=${!!auth}, hasCredential=${!!this.credential}`);
         throw new Error("No valid credentials available. Run: codex login");
@@ -581,22 +577,16 @@ class CodexClient implements ModelClient {
   }
 
   async listModels(): Promise<string[]> {
-    try {
-      const codex = await this.getCodex();
-      // Use SDK's model list endpoint
-      const response = await codex.listModels();
-      if (response?.items) {
-        return response.items.map((m: any) => m.model || m.id);
-      }
-      // Fallback if response format is different
-      if (Array.isArray(response)) {
-        return response.map((m: any) => m.model || m.id || m.name || m);
-      }
-      return [];
-    } catch (error) {
-      logger.error("[codex] Failed to list models:", error);
-      return [];
-    }
+    // SDK 0.99+ does not expose a listModels() method.
+    // Return known Codex-compatible models as a static list.
+    return [
+      "o4-mini",
+      "o3",
+      "gpt-4.1",
+      "gpt-4.1-mini",
+      "gpt-4.1-nano",
+      "codex-mini-latest",
+    ];
   }
 
   async healthCheck(): Promise<boolean> {
