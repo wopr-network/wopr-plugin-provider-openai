@@ -396,16 +396,16 @@ class CodexClient implements ModelClient {
       // SDK 0.99+ uses apiKey option or inherits from OPENAI_API_KEY env var.
       // OAuth is handled by the Codex CLI (codex login) and the SDK picks it up
       // automatically from ~/.codex/auth.json — no need to pass accessToken.
-      const apiKey = this.credential || auth?.apiKey;
-      if (apiKey) {
-        logger.info(`[codex] getCodex() creating Codex with API key...`);
-        this.codex = new Codex({ apiKey });
-        logger.info(`[codex] Initialized with API key`);
-      } else if (this.authType === "oauth") {
+      if (this.authType === "oauth") {
         logger.info(`[codex] getCodex() creating Codex (OAuth via CLI auth)...`);
         // SDK reads OAuth tokens from ~/.codex/auth.json automatically
-        this.codex = new Codex();
+        this.codex = new Codex({ ...this.options });
         logger.info(`[codex] Initialized with OAuth (${auth?.email || "user"})`);
+      } else if (this.credential || auth?.apiKey) {
+        const apiKey = this.credential || auth?.apiKey;
+        logger.info(`[codex] getCodex() creating Codex with API key...`);
+        this.codex = new Codex({ apiKey, ...this.options });
+        logger.info(`[codex] Initialized with API key`);
       } else {
         logger.error(`[codex] getCodex() NO VALID CREDENTIALS - authType=${this.authType}, hasAuth=${!!auth}, hasCredential=${!!this.credential}`);
         throw new Error("No valid credentials available. Run: codex login");
@@ -579,9 +579,8 @@ class CodexClient implements ModelClient {
   async listModels(): Promise<string[]> {
     // SDK 0.99+ does not expose a listModels() method.
     // Return known Codex-compatible models as a static list.
+    // TODO: Keep this list in sync with OpenAI SDK docs; verify names on each SDK bump.
     return [
-      "o4-mini",
-      "o3",
       "gpt-4.1",
       "gpt-4.1-mini",
       "gpt-4.1-nano",
