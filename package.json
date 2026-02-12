@@ -23,7 +23,7 @@
   ],
   "license": "MIT",
   "main": "dist/index.js",
-  "name": "wopr-plugin-provider-codex",
+  "name": "@wopr-network/wopr-plugin-provider-openai",
   "peerDependencies": {
     "wopr": "^0.0.1"
   },
@@ -46,5 +46,8 @@
       "description": "Codex agent SDK",
       "name": "provider-codex"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
