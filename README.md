@@ -1,12 +1,12 @@
-# wopr-plugin-provider-codex
+# wopr-plugin-provider-openai
 
-[![npm version](https://img.shields.io/npm/v/wopr-plugin-provider-codex.svg)](https://www.npmjs.com/package/wopr-plugin-provider-codex)
+[![npm version](https://img.shields.io/npm/v/@wopr-network/wopr-plugin-provider-openai.svg)](https://www.npmjs.com/package/@wopr-network/wopr-plugin-provider-openai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![WOPR](https://img.shields.io/badge/WOPR-Plugin-blue)](https://github.com/TSavo/wopr)
+[![WOPR](https://img.shields.io/badge/WOPR-Plugin-blue)](https://github.com/wopr-network/wopr)
 
-Codex agent SDK provider plugin for [WOPR](https://github.com/TSavo/wopr).
+OpenAI provider plugin for [WOPR](https://github.com/wopr-network/wopr), powered by the Codex agent SDK.
 
-> Part of the [WOPR](https://github.com/TSavo/wopr) ecosystem - Self-sovereign AI session management over P2P.
+> Part of the [WOPR](https://github.com/wopr-network/wopr) ecosystem - Self-sovereign AI session management over P2P.
 
 ## Features
 
@@ -29,13 +29,13 @@ Codex agent SDK provider plugin for [WOPR](https://github.com/TSavo/wopr).
 ### From GitHub (Recommended)
 
 ```bash
-wopr plugin install github:TSavo/wopr-plugin-provider-codex
+wopr plugin install github:wopr-network/wopr-plugin-provider-openai
 ```
 
 ### From npm
 
 ```bash
-wopr plugin install wopr-plugin-provider-codex
+wopr plugin install @wopr-network/wopr-plugin-provider-openai
 ```
 
 **Note**: This plugin requires the `@openai/codex-sdk` package as a dependency.
@@ -46,11 +46,11 @@ wopr plugin install wopr-plugin-provider-codex
 wopr plugin list
 ```
 
-You should see `wopr-plugin-provider-codex` in the list.
+You should see `wopr-plugin-provider-openai` in the list.
 
 ## Authentication
 
-The Codex plugin supports two authentication methods:
+The OpenAI plugin supports two authentication methods:
 
 ### Option 1: OAuth Authentication (ChatGPT Plus/Pro)
 
@@ -89,7 +89,7 @@ cat ~/.codex/auth.json
 If you have an OpenAI API key:
 
 ```bash
-wopr providers add codex sk-your-api-key-here
+wopr providers add openai sk-your-api-key-here
 ```
 
 Or set the environment variable:
@@ -114,21 +114,21 @@ wopr providers health-check
 
 You should see:
 ```
-codex: available
+openai: available
 ```
 
 ## Usage
 
-### Create a Session with Codex Provider
+### Create a Session with OpenAI Provider
 
 ```bash
-wopr session create my-session --provider codex
+wopr session create my-session --provider openai
 ```
 
 ### Set Provider on Existing Session
 
 ```bash
-wopr session set-provider my-session codex
+wopr session set-provider my-session openai
 ```
 
 ### Resume a Session
@@ -243,14 +243,14 @@ wopr daemon restart
 
 3. **Verify plugin directory exists:**
    ```bash
-   ls -la ~/wopr/plugins/wopr-plugin-provider-codex/
+   ls -la ~/wopr/plugins/wopr-plugin-provider-openai/
    ```
 
 ## Development
 
 ```bash
-git clone https://github.com/TSavo/wopr-plugin-provider-codex.git
-cd wopr-plugin-provider-codex
+git clone https://github.com/wopr-network/wopr-plugin-provider-openai.git
+cd wopr-plugin-provider-openai
 npm install
 npm run build
 ```

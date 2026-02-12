@@ -1,8 +1,8 @@
-# Codex Configuration
+# OpenAI Provider Configuration
 
 ## Authentication
 
-The Codex provider supports two authentication methods:
+The OpenAI provider supports two authentication methods:
 
 ### Option 1: OAuth Authentication (Recommended)
 
@@ -26,7 +26,7 @@ Credentials are saved to `~/.codex/auth.json`.
 
 Set via CLI:
 ```bash
-wopr providers add codex sk-your-api-key-here
+wopr providers add openai sk-your-api-key-here
 ```
 
 Or environment variable:
