@@ -10,31 +10,14 @@ import winston from "winston";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
+import type {
+  A2AServerConfig,
+  ConfigSchema,
+  WOPRPlugin,
+  WOPRPluginContext,
+} from "@wopr-network/plugin-types";
 
-// Type definitions (peer dependency from wopr)
-interface A2AToolResult {
-  content: Array<{
-    type: "text" | "image" | "resource";
-    text?: string;
-    data?: string;
-    mimeType?: string;
-  }>;
-  isError?: boolean;
-}
-
-interface A2AToolDefinition {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
-  handler: (args: Record<string, unknown>) => Promise<A2AToolResult>;
-}
-
-interface A2AServerConfig {
-  name: string;
-  version?: string;
-  tools: A2AToolDefinition[];
-}
-
+// Provider-specific types (not part of the shared plugin-types package)
 interface ModelQueryOptions {
   prompt: string;
   systemPrompt?: string;
@@ -65,37 +48,6 @@ interface ModelProvider {
   validateCredentials(credentials: string): Promise<boolean>;
   createClient(credential: string, options?: Record<string, unknown>): Promise<ModelClient>;
   getCredentialType(): "api-key" | "oauth" | "custom";
-}
-
-interface ConfigField {
-  name: string;
-  type: string;
-  label: string;
-  placeholder?: string;
-  required?: boolean;
-  description?: string;
-  options?: Array<{ value: string; label: string }>;
-  default?: unknown;
-}
-
-interface ConfigSchema {
-  title: string;
-  description: string;
-  fields: ConfigField[];
-}
-
-interface WOPRPluginContext {
-  log: { info: (msg: string) => void };
-  registerProvider: (provider: ModelProvider) => void;
-  registerConfigSchema: (name: string, schema: ConfigSchema) => void;
-}
-
-interface WOPRPlugin {
-  name: string;
-  version: string;
-  description: string;
-  init(ctx: WOPRPluginContext): Promise<void>;
-  shutdown(): Promise<void>;
 }
 
 // Setup winston logger - use LOG_LEVEL env var or default to info
