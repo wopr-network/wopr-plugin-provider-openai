@@ -345,7 +345,7 @@ class CodexClient implements ModelClient {
       const auth = getAuth();
       logger.info(`[codex] getCodex() auth result: ${auth ? auth.type : 'null'}, authType: ${this.authType}`);
 
-      // SDK 0.99+ uses apiKey option or inherits from OPENAI_API_KEY env var.
+      // SDK 0.101+ uses apiKey option or inherits from OPENAI_API_KEY env var.
       // OAuth is handled by the Codex CLI (codex login) and the SDK picks it up
       // automatically from ~/.codex/auth.json — no need to pass accessToken.
       if (this.authType === "oauth") {
@@ -529,7 +529,7 @@ class CodexClient implements ModelClient {
   }
 
   async listModels(): Promise<string[]> {
-    // SDK 0.99+ does not expose a listModels() method.
+    // SDK 0.101 does not expose a listModels() method.
     // Return known Codex-compatible models as a static list.
     // TODO: Keep this list in sync with OpenAI SDK docs; verify names on each SDK bump.
     return [
