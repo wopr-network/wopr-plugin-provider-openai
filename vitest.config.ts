@@ -15,7 +15,7 @@ export default defineConfig({
     environment: "node",
     testTimeout: 10000,
     coverage: {
-      provider: "istanbul",
+      provider: "v8",
       reporter: ["text", "lcov"],
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.d.ts"],

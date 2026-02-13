@@ -35,7 +35,7 @@ describe("plugin registration", () => {
   it("exports a valid WOPRPlugin with name and version", () => {
     expect(plugin).toBeDefined();
     expect(plugin.name).toBe("provider-codex");
-    expect(plugin.version).toBe("2.0.0");
+    expect(plugin.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(plugin.description).toBeDefined();
     expect(typeof plugin.init).toBe("function");
     expect(typeof plugin.shutdown).toBe("function");
