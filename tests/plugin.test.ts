@@ -41,6 +41,17 @@ describe("plugin registration", () => {
     expect(typeof plugin.shutdown).toBe("function");
   });
 
+  it("includes a PluginManifest with provider capability", () => {
+    expect(plugin.manifest).toBeDefined();
+    expect(plugin.manifest!.name).toBe("@wopr-network/wopr-plugin-provider-openai");
+    expect(plugin.manifest!.version).toBe(plugin.version);
+    expect(plugin.manifest!.capabilities).toContain("provider");
+    expect(plugin.manifest!.category).toBe("ai-provider");
+    expect(plugin.manifest!.requires?.network?.outbound).toBe(true);
+    expect(plugin.manifest!.configSchema).toBeDefined();
+    expect(plugin.manifest!.configSchema!.fields.length).toBeGreaterThanOrEqual(3);
+  });
+
   it("init() registers a provider", async () => {
     const ctx = createMockContext();
     await plugin.init!(ctx);
