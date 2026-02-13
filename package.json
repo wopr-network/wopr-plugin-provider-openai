@@ -7,7 +7,7 @@
   },
   "description": "OpenAI provider plugin for WOPR",
   "devDependencies": {
-    "@biomejs/biome": "^2.3.14",
+    "@biomejs/biome": "^2.3.15",
     "@types/node": "^22.0.0",
     "typescript": "^5.3.0",
     "vitest": "^4.0.18"
