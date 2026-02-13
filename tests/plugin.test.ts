@@ -34,7 +34,7 @@ const { default: plugin } = await import("../src/index.js");
 describe("plugin registration", () => {
   it("exports a valid WOPRPlugin with name and version", () => {
     expect(plugin).toBeDefined();
-    expect(plugin.name).toBe("provider-codex");
+    expect(plugin.name).toBe("provider-openai");
     expect(plugin.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(plugin.description).toBeDefined();
     expect(typeof plugin.init).toBe("function");
@@ -48,8 +48,8 @@ describe("plugin registration", () => {
     expect(ctx.registerProvider).toHaveBeenCalledTimes(1);
     const provider = (ctx.registerProvider as ReturnType<typeof vi.fn>).mock
       .calls[0][0];
-    expect(provider.id).toBe("codex");
-    expect(provider.name).toBe("Codex");
+    expect(provider.id).toBe("openai");
+    expect(provider.name).toBe("OpenAI");
     expect(typeof provider.validateCredentials).toBe("function");
     expect(typeof provider.createClient).toBe("function");
     expect(typeof provider.getCredentialType).toBe("function");
@@ -61,8 +61,8 @@ describe("plugin registration", () => {
 
     expect(ctx.registerConfigSchema).toHaveBeenCalledTimes(1);
     expect(ctx.registerConfigSchema).toHaveBeenCalledWith(
-      "provider-codex",
-      expect.objectContaining({ title: "Codex" })
+      "provider-openai",
+      expect.objectContaining({ title: "OpenAI" })
     );
   });
 
@@ -71,9 +71,9 @@ describe("plugin registration", () => {
     await plugin.init!(ctx);
 
     expect(ctx.log.info).toHaveBeenCalledWith(
-      "Registering Codex provider..."
+      "Registering OpenAI provider..."
     );
-    expect(ctx.log.info).toHaveBeenCalledWith("Codex provider registered");
+    expect(ctx.log.info).toHaveBeenCalledWith("OpenAI provider registered");
   });
 
   it("shutdown() completes without error", async () => {
@@ -96,8 +96,8 @@ describe("config schema", () => {
   });
 
   it("has title and description", () => {
-    expect(schema.title).toBe("Codex");
-    expect(schema.description).toBe("Configure Codex authentication");
+    expect(schema.title).toBe("OpenAI");
+    expect(schema.description).toBe("Configure OpenAI authentication");
   });
 
   it("defines authMethod field with select options", () => {
@@ -162,7 +162,7 @@ describe("message translation", () => {
 
   describe("provider metadata", () => {
     it("has correct id", () => {
-      expect(provider.id).toBe("codex");
+      expect(provider.id).toBe("openai");
     });
 
     it("returns a valid credential type (api-key or oauth)", () => {
