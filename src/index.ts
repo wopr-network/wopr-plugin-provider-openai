@@ -1,9 +1,9 @@
 /**
- * WOPR Plugin: Codex Provider
+ * WOPR Plugin: OpenAI Provider
  *
- * Provides Codex API access via the official @openai/codex-sdk.
+ * Provides OpenAI API access via the official @openai/codex-sdk.
  * Supports A2A tools, session resumption via thread IDs, and reasoning effort control.
- * Install: wopr plugin install wopr-plugin-provider-codex
+ * Install: wopr plugin install @wopr-network/wopr-plugin-provider-openai
  */
 
 import winston from "winston";
@@ -59,7 +59,7 @@ const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  defaultMeta: { service: "wopr-plugin-provider-codex" },
+  defaultMeta: { service: "wopr-plugin-provider-openai" },
   transports: [
     new winston.transports.Console()
   ],
@@ -226,7 +226,7 @@ async function loadCodexSDK() {
       CodexSDK = codex;
     } catch (error) {
       throw new Error(
-        "Codex SDK not installed. Run: npm install @openai/codex-sdk"
+        "OpenAI Codex SDK not installed. Run: npm install @openai/codex-sdk"
       );
     }
   }
@@ -254,9 +254,9 @@ const codexProvider: ModelProvider & {
   getActiveAuthMethod: () => string;
   hasCredentials: () => boolean;
 } = {
-  id: "codex",
-  name: "Codex",
-  description: "Codex agent SDK with OAuth, API key, session resumption",
+  id: "openai",
+  name: "OpenAI",
+  description: "OpenAI provider (Codex agent SDK) with OAuth, API key, session resumption",
   defaultModel: "", // SDK chooses default
   supportedModels: [], // Populated dynamically via listModels()
 
@@ -523,7 +523,7 @@ class CodexClient implements ModelClient {
     } catch (error) {
       logger.error("[codex] Query failed:", error);
       throw new Error(
-        `Codex query failed: ${error instanceof Error ? error.message : String(error)}`
+        `OpenAI query failed: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -563,12 +563,12 @@ class CodexClient implements ModelClient {
  * Plugin export
  */
 const plugin: WOPRPlugin = {
-  name: "provider-codex",
-  version: "2.0.0",
-  description: "Codex agent SDK provider with OAuth and API key support",
+  name: "provider-openai",
+  version: "2.1.0",
+  description: "OpenAI provider plugin with OAuth and API key support",
 
   async init(ctx: WOPRPluginContext) {
-    ctx.log.info("Registering Codex provider...");
+    ctx.log.info("Registering OpenAI provider...");
 
     // Show auth status (like Anthropic)
     const activeAuth = getActiveAuthMethod();
@@ -586,13 +586,13 @@ const plugin: WOPRPlugin = {
     }
 
     ctx.registerProvider(codexProvider);
-    ctx.log.info("Codex provider registered");
+    ctx.log.info("OpenAI provider registered");
 
     // Register config schema for UI (like Anthropic)
     const methods = getAuthMethods();
-    ctx.registerConfigSchema("provider-codex", {
-      title: "Codex",
-      description: "Configure Codex authentication",
+    ctx.registerConfigSchema("provider-openai", {
+      title: "OpenAI",
+      description: "Configure OpenAI authentication",
       fields: [
         {
           name: "authMethod",
@@ -603,7 +603,7 @@ const plugin: WOPRPlugin = {
             label: `${m.name}${m.available ? " ✓" : ""}`,
           })),
           default: getActiveAuthMethod(),
-          description: "Choose how to authenticate with Codex",
+          description: "Choose how to authenticate with OpenAI",
         },
         {
           name: "apiKey",
@@ -641,7 +641,7 @@ const plugin: WOPRPlugin = {
   },
 
   async shutdown() {
-    logger.info("[provider-codex] Shutting down");
+    logger.info("[provider-openai] Shutting down");
   },
 };
 
