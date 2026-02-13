@@ -13,6 +13,7 @@ import { homedir } from "os";
 import type {
   A2AServerConfig,
   ConfigSchema,
+  PluginManifest,
   WOPRPlugin,
   WOPRPluginContext,
 } from "@wopr-network/plugin-types";
@@ -560,12 +561,83 @@ class CodexClient implements ModelClient {
 }
 
 /**
+ * Plugin manifest — full metadata for WaaS discovery and orchestration.
+ */
+const manifest: PluginManifest = {
+  name: "@wopr-network/wopr-plugin-provider-openai",
+  version: "2.1.0",
+  description: "OpenAI provider plugin with OAuth and API key support",
+  author: "wopr-network",
+  license: "MIT",
+  repository: "https://github.com/wopr-network/wopr-plugin-provider-openai",
+  capabilities: ["provider"],
+  category: "ai-provider",
+  tags: ["openai", "codex", "provider", "agent-sdk", "oauth"],
+  requires: {
+    env: ["OPENAI_API_KEY"],
+    network: { outbound: true, hosts: ["api.openai.com"] },
+  },
+  configSchema: {
+    title: "OpenAI",
+    description: "Configure OpenAI authentication",
+    fields: [
+      {
+        name: "authMethod",
+        type: "select",
+        label: "Authentication Method",
+        options: [
+          { value: "oauth", label: "ChatGPT Plus/Pro (OAuth)" },
+          { value: "env", label: "Environment Variable" },
+          { value: "api-key", label: "API Key (manual)" },
+        ],
+        description: "Choose how to authenticate with OpenAI",
+        setupFlow: "paste",
+      },
+      {
+        name: "apiKey",
+        type: "password",
+        label: "API Key",
+        placeholder: "sk-...",
+        required: false,
+        description: "Only needed for API Key auth method",
+        secret: true,
+        setupFlow: "paste",
+      },
+      {
+        name: "defaultModel",
+        type: "text",
+        label: "Default Model",
+        placeholder: "(uses SDK default)",
+        required: false,
+        description: "Default model (leave empty for SDK default)",
+      },
+      {
+        name: "reasoningEffort",
+        type: "select",
+        label: "Reasoning Effort",
+        required: false,
+        description: "How much effort the model puts into reasoning",
+        options: [
+          { value: "minimal", label: "Minimal (fastest)" },
+          { value: "low", label: "Low" },
+          { value: "medium", label: "Medium (default)" },
+          { value: "high", label: "High" },
+          { value: "xhigh", label: "Extra High (most thorough)" },
+        ],
+        default: "medium",
+      },
+    ],
+  },
+};
+
+/**
  * Plugin export
  */
 const plugin: WOPRPlugin = {
   name: "provider-openai",
   version: "2.1.0",
   description: "OpenAI provider plugin with OAuth and API key support",
+  manifest,
 
   async init(ctx: WOPRPluginContext) {
     ctx.log.info("Registering OpenAI provider...");
