@@ -226,7 +226,7 @@ async function loadCodexSDK() {
       CodexSDK = codex;
     } catch (error) {
       throw new Error(
-        "Codex SDK not installed. Run: npm install @openai/codex-sdk"
+        "OpenAI Codex SDK not installed. Run: npm install @openai/codex-sdk"
       );
     }
   }
@@ -523,7 +523,7 @@ class CodexClient implements ModelClient {
     } catch (error) {
       logger.error("[codex] Query failed:", error);
       throw new Error(
-        `Codex query failed: ${error instanceof Error ? error.message : String(error)}`
+        `OpenAI query failed: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
