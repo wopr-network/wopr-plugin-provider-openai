@@ -512,13 +512,10 @@ class CodexClient implements ModelClient {
         }
       }
 
-      // Emit final result with cost estimate (matching Anthropic format)
-      // Rough cost estimate: $0.01 per 1K input, $0.03 per 1K output (varies by model)
-      const estimatedCost = (totalInputTokens * 0.00001) + (totalOutputTokens * 0.00003);
+      // Emit final result (cost/billing is a platform-only concern)
       yield {
         type: 'result',
         subtype: 'success',
-        total_cost_usd: estimatedCost,
       };
 
     } catch (error) {
