@@ -346,10 +346,17 @@ class CodexClient implements ModelClient {
       const auth = getAuth();
       logger.info(`[codex] getCodex() auth result: ${auth ? auth.type : 'null'}, authType: ${this.authType}`);
 
-      // SDK 0.101+ uses apiKey option or inherits from OPENAI_API_KEY env var.
-      // OAuth is handled by the Codex CLI (codex login) and the SDK picks it up
-      // automatically from ~/.codex/auth.json — no need to pass accessToken.
-      if (this.authType === "oauth") {
+      // Hosted mode: if baseUrl is set in options, route through gateway
+      // using tenantToken as the API key for metering/billing.
+      const hostedBaseUrl = this.options?.baseUrl as string | undefined;
+      const tenantToken = this.options?.tenantToken as string | undefined;
+
+      if (hostedBaseUrl) {
+        const key = tenantToken || this.credential || auth?.apiKey;
+        logger.info(`[codex] getCodex() creating Codex in hosted mode (baseUrl=${hostedBaseUrl})...`);
+        this.codex = new Codex({ apiKey: key, baseUrl: hostedBaseUrl });
+        logger.info(`[codex] Initialized in hosted mode`);
+      } else if (this.authType === "oauth") {
         logger.info(`[codex] getCodex() creating Codex (OAuth via CLI auth)...`);
         // SDK reads OAuth tokens from ~/.codex/auth.json automatically
         this.codex = new Codex({ ...this.options });
@@ -586,6 +593,23 @@ const BASE_CONFIG_FIELDS: ConfigSchema["fields"] = [
     setupFlow: "paste",
   },
   {
+    name: "baseUrl",
+    type: "text",
+    label: "Gateway Base URL",
+    placeholder: "https://api.wopr.bot/v1/openai",
+    required: false,
+    description: "If set, routes traffic through the WOPR gateway for metering and billing",
+  },
+  {
+    name: "tenantToken",
+    type: "password",
+    label: "Tenant Token",
+    placeholder: "wopr_...",
+    required: false,
+    description: "Gateway auth token (used instead of API key when baseUrl is set)",
+    secret: true,
+  },
+  {
     name: "defaultModel",
     type: "text",
     label: "Default Model",
@@ -615,7 +639,7 @@ const BASE_CONFIG_FIELDS: ConfigSchema["fields"] = [
  */
 const manifest: PluginManifest = {
   name: "@wopr-network/wopr-plugin-provider-openai",
-  version: "2.1.0",
+  version: "2.2.0",
   description: "OpenAI provider plugin with OAuth and API key support",
   author: "wopr-network",
   license: "MIT",
@@ -639,7 +663,7 @@ const manifest: PluginManifest = {
  */
 const plugin: WOPRPlugin = {
   name: "provider-openai",
-  version: "2.1.0",
+  version: "2.2.0",
   description: "OpenAI provider plugin with OAuth and API key support",
   manifest,
 
