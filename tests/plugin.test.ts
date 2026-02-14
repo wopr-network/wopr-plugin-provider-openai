@@ -9,6 +9,9 @@ import { createMockContext } from "./mocks/wopr-context.js";
 const mockStartThread = vi.fn().mockReturnValue({ id: "thread-123" });
 const mockResumeThread = vi.fn().mockReturnValue({ id: "thread-456" });
 
+// Track Codex constructor calls to verify baseUrl / apiKey
+let lastCodexConstructorArgs: any = null;
+
 function createMockCodexInstance() {
   return {
     startThread: mockStartThread,
@@ -18,7 +21,8 @@ function createMockCodexInstance() {
 
 vi.mock("@openai/codex-sdk", () => {
   // Must be a proper constructor function (not arrow) so `new Codex(...)` works
-  function Codex() {
+  function Codex(opts: any) {
+    lastCodexConstructorArgs = opts;
     return createMockCodexInstance();
   }
   return { Codex };
@@ -534,5 +538,133 @@ describe("message translation", () => {
 
       expect(threadOptions?.modelReasoningEffort).toBe("medium");
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 4. Hosted Mode (baseUrl / tenantToken) Tests
+// ---------------------------------------------------------------------------
+
+describe("hosted mode", () => {
+  let provider: any;
+
+  beforeEach(async () => {
+    mockStartThread.mockReset();
+    mockResumeThread.mockReset();
+    lastCodexConstructorArgs = null;
+    mockStartThread.mockReturnValue({ id: "thread-123" });
+    mockResumeThread.mockReturnValue({ id: "thread-456" });
+
+    const ctx = createMockContext();
+    await plugin.init!(ctx);
+    provider = (ctx.registerProvider as ReturnType<typeof vi.fn>).mock
+      .calls[0][0];
+  });
+
+  it("passes baseUrl and tenantToken to Codex SDK in hosted mode", async () => {
+    async function* mockEvents() {
+      yield { type: "thread.started", thread_id: "thread-hosted" };
+      yield {
+        type: "turn.completed",
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+    }
+
+    mockStartThread.mockReturnValueOnce({
+      id: "thread-hosted",
+      runStreamed: vi.fn().mockResolvedValue({ events: mockEvents() }),
+    });
+
+    const client = await provider.createClient("sk-test-key-123", {
+      baseUrl: "https://api.wopr.bot/v1/openai",
+      tenantToken: "wopr_tenant_abc",
+    });
+
+    for await (const _ of client.query({ prompt: "test hosted" })) {
+      // consume
+    }
+
+    // Codex SDK should receive baseUrl and tenantToken as apiKey
+    expect(lastCodexConstructorArgs).toBeDefined();
+    expect(lastCodexConstructorArgs.baseUrl).toBe(
+      "https://api.wopr.bot/v1/openai"
+    );
+    expect(lastCodexConstructorArgs.apiKey).toBe("wopr_tenant_abc");
+  });
+
+  it("uses regular API key in BYOK mode (no baseUrl)", async () => {
+    async function* mockEvents() {
+      yield { type: "thread.started", thread_id: "thread-byok" };
+      yield {
+        type: "turn.completed",
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+    }
+
+    mockStartThread.mockReturnValueOnce({
+      id: "thread-byok",
+      runStreamed: vi.fn().mockResolvedValue({ events: mockEvents() }),
+    });
+
+    const client = await provider.createClient("sk-test-key-123");
+
+    for await (const _ of client.query({ prompt: "test byok" })) {
+      // consume
+    }
+
+    // No baseUrl should be set; API key should be the user's own key
+    expect(lastCodexConstructorArgs).toBeDefined();
+    expect(lastCodexConstructorArgs.baseUrl).toBeUndefined();
+    expect(lastCodexConstructorArgs.apiKey).toBe("sk-test-key-123");
+  });
+
+  it("falls back to credential as apiKey when tenantToken is not set in hosted mode", async () => {
+    async function* mockEvents() {
+      yield { type: "thread.started", thread_id: "thread-fallback" };
+      yield {
+        type: "turn.completed",
+        usage: { input_tokens: 1, output_tokens: 1 },
+      };
+    }
+
+    mockStartThread.mockReturnValueOnce({
+      id: "thread-fallback",
+      runStreamed: vi.fn().mockResolvedValue({ events: mockEvents() }),
+    });
+
+    // baseUrl set but no tenantToken — should fall back to credential
+    const client = await provider.createClient("sk-test-key-123", {
+      baseUrl: "https://api.wopr.bot/v1/openai",
+    });
+
+    for await (const _ of client.query({ prompt: "test fallback" })) {
+      // consume
+    }
+
+    expect(lastCodexConstructorArgs).toBeDefined();
+    expect(lastCodexConstructorArgs.baseUrl).toBe(
+      "https://api.wopr.bot/v1/openai"
+    );
+    expect(lastCodexConstructorArgs.apiKey).toBe("sk-test-key-123");
+  });
+
+  it("config schema includes baseUrl and tenantToken fields", async () => {
+    const ctx = createMockContext();
+    await plugin.init!(ctx);
+
+    const schema = (ctx.registerConfigSchema as ReturnType<typeof vi.fn>).mock
+      .calls[0][1] as ConfigSchema;
+
+    const baseUrlField = schema.fields.find((f) => f.name === "baseUrl");
+    expect(baseUrlField).toBeDefined();
+    expect(baseUrlField!.type).toBe("text");
+    expect(baseUrlField!.required).toBe(false);
+
+    const tenantTokenField = schema.fields.find(
+      (f) => f.name === "tenantToken"
+    );
+    expect(tenantTokenField).toBeDefined();
+    expect(tenantTokenField!.type).toBe("password");
+    expect(tenantTokenField!.required).toBe(false);
   });
 });
