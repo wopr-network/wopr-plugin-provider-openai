@@ -306,11 +306,11 @@ describe("message translation", () => {
         exit_code: 0,
       });
 
-      // Verify final result event with cost
+      // Verify final result event (cost/billing is platform-only)
       const resultEvent = events[events.length - 1];
       expect(resultEvent.type).toBe("result");
       expect(resultEvent.subtype).toBe("success");
-      expect(resultEvent.total_cost_usd).toBeGreaterThan(0);
+      expect(resultEvent.total_cost_usd).toBeUndefined();
     });
 
     it("query yields error event on turn.failed", async () => {
