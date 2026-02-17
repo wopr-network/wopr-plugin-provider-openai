@@ -26,9 +26,6 @@
   "license": "MIT",
   "main": "dist/index.js",
   "name": "@wopr-network/wopr-plugin-provider-openai",
-  "peerDependencies": {
-    "wopr": "^0.0.1"
-  },
   "scripts": {
     "build": "tsc",
     "check": "biome check src/ && tsc --noEmit",
