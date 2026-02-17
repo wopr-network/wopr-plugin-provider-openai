@@ -9,6 +9,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import type { Codex, Thread, ThreadOptions } from "@openai/codex-sdk";
 import type {
 	A2AServerConfig,
 	ConfigSchema,
@@ -67,7 +68,7 @@ const logger = winston.createLogger({
 	transports: [new winston.transports.Console()],
 });
 
-let CodexSDK: any;
+let CodexSDK: typeof import("@openai/codex-sdk") | null = null;
 
 // =============================================================================
 // Auth Detection - mirrors Anthropic plugin pattern
@@ -227,7 +228,7 @@ function getActiveAuthMethod(): string {
 /**
  * Lazy load Codex SDK
  */
-async function loadCodexSDK() {
+async function loadCodexSDK(): Promise<typeof import("@openai/codex-sdk")> {
 	if (!CodexSDK) {
 		try {
 			const codex = await import("@openai/codex-sdk");
@@ -329,7 +330,7 @@ const codexProvider: ModelProvider & {
  * Codex client implementation with session resumption
  */
 class CodexClient implements ModelClient {
-	private codex: any;
+	private codex: Codex | null = null;
 	private authType: string;
 
 	constructor(
@@ -353,7 +354,7 @@ class CodexClient implements ModelClient {
 		logger.info(`[codex] Using auth: ${this.authType}`);
 	}
 
-	private async getCodex() {
+	private async getCodex(): Promise<Codex> {
 		logger.info(
 			`[codex] getCodex() called, this.codex exists: ${!!this.codex}`,
 		);
@@ -410,7 +411,7 @@ class CodexClient implements ModelClient {
 		logger.info(`[codex] query() got codex instance`);
 
 		try {
-			let thread: any;
+			let thread: Thread;
 			let sessionId: string = "";
 			let _totalInputTokens = 0;
 			let _totalOutputTokens = 0;
@@ -422,7 +423,7 @@ class CodexClient implements ModelClient {
 				sessionId = opts.resume;
 			} else {
 				// Start new thread with options
-				const threadOptions: any = {
+				const threadOptions: ThreadOptions = {
 					workingDirectory: process.cwd(),
 					sandboxMode: "workspace-write",
 					approvalPolicy: "never", // YOLO mode - auto-approve
