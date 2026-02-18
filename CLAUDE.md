@@ -21,11 +21,11 @@ src/
 
 ## Key Details
 
-- **SDK**: `openai` npm package
-- Implements `ProviderPlugin` from `@wopr-network/plugin-types`
-- API key and base URL configured via plugin config schema (supports Azure OpenAI via base URL override)
-- Model selection exposed through config (gpt-4o, gpt-4o-mini, o1, etc.)
-- Streaming responses via OpenAI streaming API
+- **SDK**: `@openai/codex-sdk` npm package
+- Implements `WOPRPlugin` from `@wopr-network/plugin-types`
+- API key and base URL configured via plugin config schema; when `baseUrl` is set, traffic routes through the WOPR hosted gateway for metering and billing
+- Model selection exposed through config (gpt-4.1, gpt-4.1-mini, gpt-4.1-nano, codex-mini-latest)
+- Streaming responses via `thread.runStreamed()` from `@openai/codex-sdk`
 
 ## Plugin Contract
 
