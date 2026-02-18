@@ -728,7 +728,7 @@ const plugin: WOPRPlugin = {
 			ctx.log.info("  Run: codex login (OAuth) or set OPENAI_API_KEY");
 		}
 
-		ctx.registerProvider(codexProvider);
+		ctx.registerLLMProvider(codexProvider);
 		ctx.log.info("OpenAI provider registered");
 
 		// Register config schema for UI (like Anthropic)
