@@ -60,8 +60,8 @@ describe("plugin registration", () => {
     const ctx = createMockContext();
     await plugin.init!(ctx);
 
-    expect(ctx.registerProvider).toHaveBeenCalledTimes(1);
-    const provider = (ctx.registerProvider as ReturnType<typeof vi.fn>).mock
+    expect(ctx.registerLLMProvider).toHaveBeenCalledTimes(1);
+    const provider = (ctx.registerLLMProvider as ReturnType<typeof vi.fn>).mock
       .calls[0][0];
     expect(provider.id).toBe("openai");
     expect(provider.name).toBe("OpenAI");
@@ -171,7 +171,7 @@ describe("message translation", () => {
 
     const ctx = createMockContext();
     await plugin.init!(ctx);
-    provider = (ctx.registerProvider as ReturnType<typeof vi.fn>).mock
+    provider = (ctx.registerLLMProvider as ReturnType<typeof vi.fn>).mock
       .calls[0][0];
   });
 
@@ -557,7 +557,7 @@ describe("hosted mode", () => {
 
     const ctx = createMockContext();
     await plugin.init!(ctx);
-    provider = (ctx.registerProvider as ReturnType<typeof vi.fn>).mock
+    provider = (ctx.registerLLMProvider as ReturnType<typeof vi.fn>).mock
       .calls[0][0];
   });
 

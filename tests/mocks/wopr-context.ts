@@ -63,10 +63,10 @@ export function createMockContext(
     getConfig: vi.fn().mockReturnValue({}),
     saveConfig: vi.fn().mockResolvedValue(undefined),
     getMainConfig: vi.fn().mockReturnValue({}),
-    registerProvider: vi.fn((provider: unknown) => {
+    registerLLMProvider: vi.fn((provider: unknown) => {
       registeredProviders.push(provider);
     }),
-    unregisterProvider: vi.fn(),
+    unregisterLLMProvider: vi.fn(),
     getProvider: vi.fn(),
     registerConfigSchema: vi.fn(
       (pluginId: string, schema: ConfigSchema) => {
