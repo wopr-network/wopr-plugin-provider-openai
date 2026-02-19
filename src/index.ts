@@ -605,6 +605,38 @@ class CodexClient implements ModelClient {
 	}
 }
 
+// Static model metadata for extension enrichment (WOP-268)
+const OPENAI_MODEL_INFO = [
+	{
+		id: "gpt-4.1",
+		name: "GPT-4.1",
+		contextWindow: "1M",
+		maxOutput: "32K",
+		legacy: false,
+	},
+	{
+		id: "gpt-4.1-mini",
+		name: "GPT-4.1 Mini",
+		contextWindow: "1M",
+		maxOutput: "32K",
+		legacy: false,
+	},
+	{
+		id: "gpt-4.1-nano",
+		name: "GPT-4.1 Nano",
+		contextWindow: "1M",
+		maxOutput: "32K",
+		legacy: false,
+	},
+	{
+		id: "codex-mini-latest",
+		name: "Codex Mini",
+		contextWindow: "1M",
+		maxOutput: "32K",
+		legacy: false,
+	},
+];
+
 /**
  * Shared config field definitions used by both the static manifest and
  * the runtime config schema registered in init().  Kept in one place so
@@ -730,6 +762,14 @@ const plugin: WOPRPlugin = {
 
 		ctx.registerLLMProvider(codexProvider);
 		ctx.log.info("OpenAI provider registered");
+
+		// Register extension for daemon model endpoint enrichment (WOP-268)
+		if (ctx.registerExtension) {
+			ctx.registerExtension("provider-openai", {
+				getModelInfo: async () => OPENAI_MODEL_INFO,
+			});
+			ctx.log.info("Registered provider-openai extension");
+		}
 
 		// Register config schema for UI (like Anthropic)
 		// Start from shared fields, then override authMethod with runtime availability.
