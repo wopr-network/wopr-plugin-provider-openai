@@ -69,7 +69,8 @@ export class RealtimeClient {
 		const baseUrl = this.options.baseUrl || "wss://api.openai.com";
 		const token = this.options.tenantToken || this.credential;
 
-		const url = `${baseUrl}/v1/realtime?model=${encodeURIComponent(model)}`;
+		const realtimeBase = new URL(baseUrl).origin;
+		const url = `${realtimeBase}/v1/realtime?model=${encodeURIComponent(model)}`;
 		logger.info(`[realtime] Connecting to ${url}`);
 
 		return new Promise<void>((resolve, reject) => {
@@ -97,9 +98,9 @@ export class RealtimeClient {
 				}
 			};
 
-			this.ws.onerror = (ev: any) => {
+			this.ws.onerror = (ev: Event) => {
 				clearTimeout(timeout);
-				const message = ev?.message || "WebSocket error";
+				const message = (ev as ErrorEvent)?.message || "WebSocket error";
 				logger.error(`[realtime] WebSocket error: ${message}`);
 				this.emit({ type: "error", message });
 				reject(new Error(message));
@@ -114,9 +115,10 @@ export class RealtimeClient {
 	}
 
 	private handleServerEvent(
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		msg: any,
 		config: RealtimeSessionConfig,
-		resolveConnect: ((value: void) => void) | null,
+		resolveConnect: ((value: undefined) => void) | null,
 		timeout: ReturnType<typeof setTimeout> | null,
 	): void {
 		switch (msg.type) {
@@ -125,7 +127,7 @@ export class RealtimeClient {
 				const sessionId = msg.session?.id || "";
 				this.emit({ type: "session.created", sessionId });
 				this.sendSessionUpdate(config);
-				resolveConnect?.();
+				resolveConnect?.(undefined);
 				break;
 			}
 
@@ -244,7 +246,10 @@ export class RealtimeClient {
 	}
 
 	sendFunctionResult(callId: string, output: string): void {
-		if (!this.ws || this.ws.readyState !== 1) return;
+		if (!this.ws || this.ws.readyState !== 1) {
+			logger.warn("[realtime] Cannot send function result: WebSocket not open");
+			return;
+		}
 		this.ws.send(
 			JSON.stringify({
 				type: "conversation.item.create",
