@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import type { RealtimeEvent } from "../src/realtime.js";
 
 // Mock WebSocket
@@ -41,6 +41,9 @@ class MockWebSocket {
 }
 
 vi.stubGlobal("WebSocket", MockWebSocket);
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 // Import after mock
 const { createRealtimeClient } = await import("../src/realtime.js");

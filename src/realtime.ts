@@ -72,20 +72,31 @@ export class RealtimeClient {
 		const baseUrl = this.options.baseUrl || "wss://api.openai.com";
 		const token = this.options.tenantToken || this.credential;
 
-		const realtimeBase = new URL(baseUrl).origin;
-		const url = `${realtimeBase}/v1/realtime?model=${encodeURIComponent(model)}`;
+		const parsedBase = new URL(baseUrl);
+		const rawPath = parsedBase.pathname && parsedBase.pathname !== "/" ? parsedBase.pathname : "/v1";
+		const basePath = rawPath.replace(/\/openai\/?$/, "");
+		const realtimePath = `${basePath.replace(/\/$/, "")}/realtime`;
+		const url = `${parsedBase.origin}${realtimePath}?model=${encodeURIComponent(model)}`;
 		logger.info(`[realtime] Connecting to ${url}`);
 
 		return new Promise<void>((resolve, reject) => {
 			this.ws = new WebSocket(url, {
+				// Node.js v22 native WebSocket (Undici) supports a non-standard `headers` option
+				// for the HTTP Upgrade handshake. DOM/WHATWG types don't include this extension.
+				// @ts-expect-error -- Undici WebSocketInit.headers not in DOM types
 				headers: {
 					Authorization: `Bearer ${token}`,
 					"OpenAI-Beta": "realtime=v1",
 				},
-			} as any);
+			});
 
 			const timeout = setTimeout(() => {
-				reject(new Error("Realtime connection timeout (30s)"));
+				try {
+					this.ws?.close(1000, "Connection timeout");
+				} finally {
+					this.ws = null;
+					reject(new Error("Realtime connection timeout (30s)"));
+				}
 			}, 30_000);
 
 			this.ws.onopen = () => {

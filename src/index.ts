@@ -662,6 +662,22 @@ const OPENAI_MODEL_INFO = [
 ];
 
 /**
+ * Single source of truth for realtime voice options (WOP-606).
+ * Used by both BASE_CONFIG_FIELDS and manifest.provides.capabilities configSchema.
+ */
+const REALTIME_VOICE_DEFAULT = "cedar";
+const REALTIME_VOICE_OPTIONS = [
+	{ value: "cedar", label: "Cedar (recommended)" },
+	{ value: "marin", label: "Marin" },
+	{ value: "breeze", label: "Breeze" },
+	{ value: "cove", label: "Cove" },
+	{ value: "ember", label: "Ember" },
+	{ value: "juniper", label: "Juniper" },
+	{ value: "maple", label: "Maple" },
+	{ value: "vale", label: "Vale" },
+];
+
+/**
  * Shared config field definitions used by both the static manifest and
  * the runtime config schema registered in init().  Kept in one place so
  * the two schemas cannot drift apart.
@@ -743,17 +759,8 @@ const BASE_CONFIG_FIELDS: ConfigSchema["fields"] = [
 		label: "Realtime Voice",
 		required: false,
 		description: "Voice for realtime speech-to-speech sessions",
-		options: [
-			{ value: "cedar", label: "Cedar (recommended)" },
-			{ value: "marin", label: "Marin" },
-			{ value: "breeze", label: "Breeze" },
-			{ value: "cove", label: "Cove" },
-			{ value: "ember", label: "Ember" },
-			{ value: "juniper", label: "Juniper" },
-			{ value: "maple", label: "Maple" },
-			{ value: "vale", label: "Vale" },
-		],
-		default: "cedar",
+		options: REALTIME_VOICE_OPTIONS,
+		default: REALTIME_VOICE_DEFAULT,
 	},
 ];
 
@@ -783,7 +790,7 @@ const manifest: PluginManifest = {
 				type: "realtime-voice",
 				id: "openai-realtime",
 				displayName: "OpenAI Realtime",
-				tier: "byok",
+				tier: "byok", // TODO: remove when ManifestProviderEntry.tier is optional (WOP-752)
 				configSchema: {
 					title: "OpenAI Realtime Voice",
 					description: "Native speech-to-speech via gpt-realtime",
@@ -792,11 +799,8 @@ const manifest: PluginManifest = {
 							name: "voice",
 							type: "select",
 							label: "Voice",
-							options: [
-								{ value: "cedar", label: "Cedar" },
-								{ value: "marin", label: "Marin" },
-							],
-							default: "cedar",
+							options: REALTIME_VOICE_OPTIONS,
+							default: REALTIME_VOICE_DEFAULT,
 						},
 					],
 				},
@@ -846,20 +850,20 @@ const plugin: WOPRPlugin = {
 
 		// Register extension for daemon model endpoint enrichment (WOP-268)
 		if (ctx.registerExtension) {
-			ctx.registerExtension("provider-openai", {
-				getModelInfo: async () => OPENAI_MODEL_INFO,
-				createRealtimeClient: (credential: string, options?: RealtimeClientOptions) =>
-					createRealtimeClient(credential, options),
-			});
-			ctx.log.info("Registered provider-openai extension");
-		}
-
-		// Log realtime status (WOP-606) — capability is declared via manifest.provides
-		if (ctx.getConfig) {
-			const pluginConfig = ctx.getConfig<{ enableRealtime?: boolean }>();
-			if (pluginConfig?.enableRealtime) {
+			const realtimeEnabled = !!ctx.getConfig?.<{ enableRealtime?: boolean }>()?.enableRealtime;
+			if (realtimeEnabled) {
 				ctx.log.info("Realtime voice enabled (gpt-realtime)");
 			}
+			ctx.registerExtension("provider-openai", {
+				getModelInfo: async () => OPENAI_MODEL_INFO,
+				createRealtimeClient: (credential: string, options?: RealtimeClientOptions) => {
+					if (!realtimeEnabled) {
+						throw new Error("Realtime voice is disabled. Enable `enableRealtime` in plugin config.");
+					}
+					return createRealtimeClient(credential, options);
+				},
+			});
+			ctx.log.info("Registered provider-openai extension");
 		}
 
 		// Register config schema for UI (like Anthropic)
