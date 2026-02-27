@@ -98,7 +98,8 @@ export async function retryWithBackoff<T>(
 			if (attempt === maxRetries) throw error;
 
 			const msg = error instanceof Error ? error.message : String(error);
-			const status = (error as any)?.status ?? (error as any)?.statusCode;
+			const errorObj = typeof error === "object" && error !== null ? (error as Record<string, unknown>) : null;
+			const status = (errorObj?.status ?? errorObj?.statusCode) as number | undefined;
 			const isRetryable =
 				(status && retryableCodes.includes(status)) ||
 				msg.includes("ECONNRESET") ||

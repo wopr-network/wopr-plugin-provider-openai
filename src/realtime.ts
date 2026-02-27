@@ -132,16 +132,21 @@ export class RealtimeClient {
 	}
 
 	private handleServerEvent(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		msg: any,
+		msg: unknown,
 		config: RealtimeSessionConfig,
 		resolveConnect: ((value: undefined) => void) | null,
 		timeout: ReturnType<typeof setTimeout> | null,
 	): void {
-		switch (msg.type) {
+		if (typeof msg !== "object" || msg === null || !("type" in msg)) return;
+		const event = msg as Record<string, unknown>;
+		switch (event.type) {
 			case "session.created": {
 				if (timeout) clearTimeout(timeout);
-				const sessionId = msg.session?.id || "";
+				const session =
+					typeof event.session === "object" && event.session !== null
+						? (event.session as Record<string, unknown>)
+						: null;
+				const sessionId = typeof session?.id === "string" ? session.id : "";
 				this.emit({ type: "session.created", sessionId });
 				this.sendSessionUpdate(config);
 				resolveConnect?.(undefined);
@@ -149,30 +154,30 @@ export class RealtimeClient {
 			}
 
 			case "response.audio.delta": {
-				if (msg.delta) {
-					const data = Buffer.from(msg.delta, "base64");
+				if (typeof event.delta === "string") {
+					const data = Buffer.from(event.delta, "base64");
 					this.emit({ type: "audio", data });
 				}
 				break;
 			}
 
 			case "response.audio_transcript.done": {
-				if (msg.transcript) {
-					this.emit({ type: "transcript", text: msg.transcript, role: "assistant" });
+				if (typeof event.transcript === "string") {
+					this.emit({ type: "transcript", text: event.transcript, role: "assistant" });
 				}
 				break;
 			}
 
 			case "conversation.item.input_audio_transcription.completed": {
-				if (msg.transcript) {
-					this.emit({ type: "transcript", text: msg.transcript, role: "user" });
+				if (typeof event.transcript === "string") {
+					this.emit({ type: "transcript", text: event.transcript, role: "user" });
 				}
 				break;
 			}
 
 			case "response.text.delta": {
-				if (msg.delta) {
-					this.emit({ type: "text", text: msg.delta });
+				if (typeof event.delta === "string") {
+					this.emit({ type: "text", text: event.delta });
 				}
 				break;
 			}
@@ -180,22 +185,24 @@ export class RealtimeClient {
 			case "response.function_call_arguments.done": {
 				this.emit({
 					type: "tool_call",
-					callId: msg.call_id,
-					name: msg.name,
-					arguments: msg.arguments,
+					callId: typeof event.call_id === "string" ? event.call_id : "",
+					name: typeof event.name === "string" ? event.name : "",
+					arguments: typeof event.arguments === "string" ? event.arguments : "",
 				});
 				break;
 			}
 
 			case "error": {
-				const errMsg = msg.error?.message || "Unknown realtime error";
-				const errCode = msg.error?.code;
+				const err =
+					typeof event.error === "object" && event.error !== null ? (event.error as Record<string, unknown>) : null;
+				const errMsg = typeof err?.message === "string" ? err.message : "Unknown realtime error";
+				const errCode = typeof err?.code === "string" ? err.code : undefined;
 				this.emit({ type: "error", message: errMsg, code: errCode });
 				break;
 			}
 
 			default:
-				logger.debug(`[realtime] Unhandled event: ${msg.type}`);
+				logger.debug(`[realtime] Unhandled event: ${String(event.type)}`);
 		}
 	}
 
