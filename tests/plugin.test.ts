@@ -668,3 +668,54 @@ describe("hosted mode", () => {
     expect(tenantTokenField!.required).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 5. Realtime Voice Capability Tests (WOP-606)
+// ---------------------------------------------------------------------------
+
+describe("realtime-voice capability", () => {
+  it("manifest includes realtime-voice in capabilities", () => {
+    expect(plugin.manifest!.capabilities).toContain("realtime-voice");
+  });
+
+  it("manifest declares realtime-voice in provides.capabilities", () => {
+    const providers = (plugin.manifest as any).provides?.capabilities;
+    expect(providers).toBeDefined();
+    const realtimeProvider = providers!.find((p: any) => p.type === "realtime-voice");
+    expect(realtimeProvider).toBeDefined();
+    expect(realtimeProvider!.id).toBe("openai-realtime");
+    expect(realtimeProvider!.displayName).toBe("OpenAI Realtime");
+  });
+
+  it("manifest requires api.openai.com in network hosts", () => {
+    expect(plugin.manifest!.requires?.network?.hosts).toContain("api.openai.com");
+  });
+
+  it("manifest tags include realtime and speech-to-speech", () => {
+    expect(plugin.manifest!.tags).toContain("realtime");
+    expect(plugin.manifest!.tags).toContain("speech-to-speech");
+  });
+
+  it("config schema includes enableRealtime checkbox field", async () => {
+    const ctx = createMockContext();
+    await plugin.init!(ctx);
+    const schema = (ctx.registerConfigSchema as ReturnType<typeof vi.fn>).mock
+      .calls[0][1];
+    const field = schema.fields.find((f: any) => f.name === "enableRealtime");
+    expect(field).toBeDefined();
+    expect(field!.type).toBe("checkbox");
+    expect(field!.default).toBe(false);
+  });
+
+  it("config schema includes realtimeVoice select field", async () => {
+    const ctx = createMockContext();
+    await plugin.init!(ctx);
+    const schema = (ctx.registerConfigSchema as ReturnType<typeof vi.fn>).mock
+      .calls[0][1];
+    const field = schema.fields.find((f: any) => f.name === "realtimeVoice");
+    expect(field).toBeDefined();
+    expect(field!.type).toBe("select");
+    expect(field!.options!.map((o: any) => o.value)).toContain("cedar");
+    expect(field!.options!.map((o: any) => o.value)).toContain("marin");
+  });
+});

@@ -19,6 +19,8 @@ import type {
 	WOPRPluginContext,
 } from "@wopr-network/plugin-types";
 import winston from "winston";
+import type { RealtimeClientOptions } from "./realtime.js";
+import { createRealtimeClient } from "./realtime.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -650,6 +652,13 @@ const OPENAI_MODEL_INFO = [
 		maxOutput: "32K",
 		legacy: false,
 	},
+	{
+		id: "gpt-realtime",
+		name: "GPT Realtime",
+		contextWindow: "28K",
+		maxOutput: "4K",
+		legacy: false,
+	},
 ];
 
 /**
@@ -720,6 +729,32 @@ const BASE_CONFIG_FIELDS: ConfigSchema["fields"] = [
 		],
 		default: "medium",
 	},
+	{
+		name: "enableRealtime",
+		type: "checkbox",
+		label: "Enable Realtime Voice",
+		required: false,
+		description: "Enable native speech-to-speech via OpenAI Realtime API (gpt-realtime)",
+		default: false,
+	},
+	{
+		name: "realtimeVoice",
+		type: "select",
+		label: "Realtime Voice",
+		required: false,
+		description: "Voice for realtime speech-to-speech sessions",
+		options: [
+			{ value: "cedar", label: "Cedar (recommended)" },
+			{ value: "marin", label: "Marin" },
+			{ value: "breeze", label: "Breeze" },
+			{ value: "cove", label: "Cove" },
+			{ value: "ember", label: "Ember" },
+			{ value: "juniper", label: "Juniper" },
+			{ value: "maple", label: "Maple" },
+			{ value: "vale", label: "Vale" },
+		],
+		default: "cedar",
+	},
 ];
 
 /**
@@ -732,12 +767,38 @@ const manifest: PluginManifest = {
 	author: "wopr-network",
 	license: "MIT",
 	repository: "https://github.com/wopr-network/wopr-plugin-provider-openai",
-	capabilities: ["provider"],
+	capabilities: ["provider", "realtime-voice"],
 	category: "ai-provider",
-	tags: ["openai", "codex", "provider", "agent-sdk", "oauth"],
+	tags: ["openai", "codex", "provider", "agent-sdk", "oauth", "realtime", "speech-to-speech"],
 	requires: {
 		env: [],
 		network: { outbound: true, hosts: ["api.openai.com"] },
+	},
+	provides: {
+		capabilities: [
+			{
+				type: "realtime-voice",
+				id: "openai-realtime",
+				displayName: "OpenAI Realtime",
+				tier: "byok",
+				configSchema: {
+					title: "OpenAI Realtime Voice",
+					description: "Native speech-to-speech via gpt-realtime",
+					fields: [
+						{
+							name: "voice",
+							type: "select",
+							label: "Voice",
+							options: [
+								{ value: "cedar", label: "Cedar" },
+								{ value: "marin", label: "Marin" },
+							],
+							default: "cedar",
+						},
+					],
+				},
+			},
+		],
 	},
 	configSchema: {
 		title: "OpenAI",
@@ -780,8 +841,18 @@ const plugin: WOPRPlugin = {
 		if (ctx.registerExtension) {
 			ctx.registerExtension("provider-openai", {
 				getModelInfo: async () => OPENAI_MODEL_INFO,
+				createRealtimeClient: (credential: string, options?: RealtimeClientOptions) =>
+					createRealtimeClient(credential, options),
 			});
 			ctx.log.info("Registered provider-openai extension");
+		}
+
+		// Log realtime status (WOP-606) — capability is declared via manifest.provides
+		if (ctx.getConfig) {
+			const pluginConfig = ctx.getConfig<{ enableRealtime?: boolean }>();
+			if (pluginConfig?.enableRealtime) {
+				ctx.log.info("Realtime voice enabled (gpt-realtime)");
+			}
 		}
 
 		// Register config schema for UI (like Anthropic)
