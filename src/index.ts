@@ -774,6 +774,9 @@ const manifest: PluginManifest = {
 		env: [],
 		network: { outbound: true, hosts: ["api.openai.com"] },
 	},
+	lifecycle: {
+		shutdownBehavior: "graceful",
+	},
 	provides: {
 		capabilities: [
 			{
@@ -807,6 +810,9 @@ const manifest: PluginManifest = {
 	},
 };
 
+// Captured in init() so shutdown() can reverse registrations (WOPRPlugin.shutdown has no ctx param).
+let _pluginCtx: WOPRPluginContext | null = null;
+
 /**
  * Plugin export
  */
@@ -817,6 +823,7 @@ const plugin: WOPRPlugin = {
 	manifest,
 
 	async init(ctx: WOPRPluginContext) {
+		_pluginCtx = ctx;
 		ctx.log.info("Registering OpenAI provider...");
 
 		// Show auth status (like Anthropic)
@@ -880,6 +887,15 @@ const plugin: WOPRPlugin = {
 
 	async shutdown() {
 		logger.info("[provider-openai] Shutting down");
+		if (_pluginCtx) {
+			if (_pluginCtx.unregisterExtension) {
+				_pluginCtx.unregisterExtension("provider-openai");
+			}
+			if (_pluginCtx.unregisterConfigSchema) {
+				_pluginCtx.unregisterConfigSchema("provider-openai");
+			}
+			_pluginCtx = null;
+		}
 	},
 };
 

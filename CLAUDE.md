@@ -16,7 +16,8 @@ npm test          # vitest run
 
 ```
 src/
-  index.ts   # Plugin entry — OpenAI client, provider implementation
+  index.ts      # Plugin entry — OpenAI client, provider implementation
+  realtime.ts   # RealtimeClient WebSocket wrapper for gpt-realtime speech-to-speech
 ```
 
 ## Key Details

@@ -112,6 +112,9 @@ export class RealtimeClient {
 			this.ws.onclose = (ev: { code: number; reason: string }) => {
 				clearTimeout(timeout);
 				logger.info(`[realtime] WebSocket closed: ${ev.code} ${ev.reason}`);
+				// Reject in case the connection closed before session.created was received.
+				// If the promise was already resolved this is a safe no-op per Promise spec.
+				reject(new Error(`WebSocket closed before session ready (code ${ev.code})`));
 				this.emit({ type: "closed", reason: ev.reason || `Code ${ev.code}` });
 			};
 		});
