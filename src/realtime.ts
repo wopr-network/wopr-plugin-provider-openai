@@ -54,8 +54,11 @@ export class RealtimeClient {
 		this.options = options;
 	}
 
-	onEvent(callback: EventCallback): void {
+	onEvent(callback: EventCallback): () => void {
 		this.listeners.push(callback);
+		return () => {
+			this.listeners = this.listeners.filter((h) => h !== callback);
+		};
 	}
 
 	private emit(event: RealtimeEvent): void {

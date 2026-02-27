@@ -221,7 +221,7 @@ describe("RealtimeClient", () => {
     const ws = MockWebSocket.instances[0];
 
     expect(ws.url).toBe(
-      "wss://api.wopr.bot/v1/openai/v1/realtime?model=gpt-realtime"
+      "wss://api.wopr.bot/v1/realtime?model=gpt-realtime"
     );
     expect(ws.headers["Authorization"]).toBe("Bearer wopr_abc");
 
