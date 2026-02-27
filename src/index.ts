@@ -791,7 +791,7 @@ const manifest: PluginManifest = {
 				type: "realtime-voice",
 				id: "openai-realtime",
 				displayName: "OpenAI Realtime",
-				tier: "byok", // TODO: remove when ManifestProviderEntry.tier is optional (WOP-752)
+				tier: "byok", // WOP-752: remove when ManifestProviderEntry.tier is optional
 				configSchema: {
 					title: "OpenAI Realtime Voice",
 					description: "Native speech-to-speech via gpt-realtime",

@@ -63,11 +63,22 @@ export class RealtimeClient {
 
 	private emit(event: RealtimeEvent): void {
 		for (const listener of this.listeners) {
-			listener(event);
+			try {
+				listener(event);
+			} catch (error) {
+				logger.error("[realtime] Event listener threw", error);
+			}
 		}
 	}
 
 	async connect(config: RealtimeSessionConfig): Promise<void> {
+		if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
+			throw new Error("Realtime connection already active. Call disconnect() before reconnecting.");
+		}
+		if (this.ws && this.ws.readyState >= WebSocket.CLOSING) {
+			this.ws = null;
+		}
+
 		const model = config.model || "gpt-realtime";
 		const baseUrl = this.options.baseUrl || "wss://api.openai.com";
 		const token = this.options.tenantToken || this.credential;
@@ -117,12 +128,14 @@ export class RealtimeClient {
 				const message = (ev as ErrorEvent)?.message || "WebSocket error";
 				logger.error(`[realtime] WebSocket error: ${message}`);
 				this.emit({ type: "error", message });
+				this.ws = null;
 				reject(new Error(message));
 			};
 
 			this.ws.onclose = (ev: { code: number; reason: string }) => {
 				clearTimeout(timeout);
 				logger.info(`[realtime] WebSocket closed: ${ev.code} ${ev.reason}`);
+				this.ws = null;
 				// Reject in case the connection closed before session.created was received.
 				// If the promise was already resolved this is a safe no-op per Promise spec.
 				reject(new Error(`WebSocket closed before session ready (code ${ev.code})`));
