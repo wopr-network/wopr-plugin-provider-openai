@@ -109,10 +109,10 @@ describe("RealtimeClient", () => {
       delta: audioBase64,
     });
 
-    const audioEvent = events.find((e) => e.type === "audio");
+    const audioEvent = events.find((e) => e.type === "audio") as Extract<RealtimeEvent, { type: "audio" }> | undefined;
     expect(audioEvent).toBeDefined();
     expect(audioEvent!.type).toBe("audio");
-    expect((audioEvent as any).data).toBeInstanceOf(Buffer);
+    expect(audioEvent!.data).toBeInstanceOf(Buffer);
   });
 
   it("translates response.audio_transcript.done into transcript events", async () => {
@@ -131,10 +131,10 @@ describe("RealtimeClient", () => {
       transcript: "Hello there",
     });
 
-    const transcriptEvent = events.find((e) => e.type === "transcript");
+    const transcriptEvent = events.find((e) => e.type === "transcript") as Extract<RealtimeEvent, { type: "transcript" }> | undefined;
     expect(transcriptEvent).toBeDefined();
-    expect((transcriptEvent as any).text).toBe("Hello there");
-    expect((transcriptEvent as any).role).toBe("assistant");
+    expect(transcriptEvent!.text).toBe("Hello there");
+    expect(transcriptEvent!.role).toBe("assistant");
   });
 
   it("sends input_audio_buffer.append with base64 audio", async () => {
@@ -175,11 +175,11 @@ describe("RealtimeClient", () => {
       arguments: '{"city":"NYC"}',
     });
 
-    const toolEvent = events.find((e) => e.type === "tool_call");
+    const toolEvent = events.find((e) => e.type === "tool_call") as Extract<RealtimeEvent, { type: "tool_call" }> | undefined;
     expect(toolEvent).toBeDefined();
-    expect((toolEvent as any).callId).toBe("call-1");
-    expect((toolEvent as any).name).toBe("get_weather");
-    expect((toolEvent as any).arguments).toBe('{"city":"NYC"}');
+    expect(toolEvent!.callId).toBe("call-1");
+    expect(toolEvent!.name).toBe("get_weather");
+    expect(toolEvent!.arguments).toBe('{"city":"NYC"}');
   });
 
   it("emits error event on server error", async () => {
@@ -198,9 +198,9 @@ describe("RealtimeClient", () => {
       error: { message: "Rate limit exceeded", code: "rate_limit" },
     });
 
-    const errorEvent = events.find((e) => e.type === "error");
+    const errorEvent = events.find((e) => e.type === "error") as Extract<RealtimeEvent, { type: "error" }> | undefined;
     expect(errorEvent).toBeDefined();
-    expect((errorEvent as any).message).toBe("Rate limit exceeded");
+    expect(errorEvent!.message).toBe("Rate limit exceeded");
   });
 
   it("disconnect closes the WebSocket", async () => {
