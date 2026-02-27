@@ -791,7 +791,6 @@ const manifest: PluginManifest = {
 				type: "realtime-voice",
 				id: "openai-realtime",
 				displayName: "OpenAI Realtime",
-				tier: "byok", // TODO: remove when ManifestProviderEntry.tier is optional (WOP-752)
 				configSchema: {
 					title: "OpenAI Realtime Voice",
 					description: "Native speech-to-speech via gpt-realtime",
@@ -846,7 +845,7 @@ const plugin: WOPRPlugin = {
 			ctx.log.info("  Run: codex login (OAuth) or set OPENAI_API_KEY");
 		}
 
-		ctx.registerLLMProvider(codexProvider);
+		ctx.registerProvider(codexProvider);
 		ctx.log.info("OpenAI provider registered");
 
 		// Register extension for daemon model endpoint enrichment (WOP-268)
