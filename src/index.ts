@@ -19,6 +19,8 @@ import type {
 	WOPRPluginContext,
 } from "@wopr-network/plugin-types";
 import winston from "winston";
+import type { RealtimeClientOptions } from "./realtime.js";
+import { createRealtimeClient } from "./realtime.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -96,7 +98,8 @@ export async function retryWithBackoff<T>(
 			if (attempt === maxRetries) throw error;
 
 			const msg = error instanceof Error ? error.message : String(error);
-			const status = (error as any)?.status ?? (error as any)?.statusCode;
+			const errorObj = typeof error === "object" && error !== null ? (error as Record<string, unknown>) : null;
+			const status = (errorObj?.status ?? errorObj?.statusCode) as number | undefined;
 			const isRetryable =
 				(status && retryableCodes.includes(status)) ||
 				msg.includes("ECONNRESET") ||
@@ -650,6 +653,29 @@ const OPENAI_MODEL_INFO = [
 		maxOutput: "32K",
 		legacy: false,
 	},
+	{
+		id: "gpt-realtime",
+		name: "GPT Realtime",
+		contextWindow: "28K",
+		maxOutput: "4K",
+		legacy: false,
+	},
+];
+
+/**
+ * Single source of truth for realtime voice options (WOP-606).
+ * Used by both BASE_CONFIG_FIELDS and manifest.provides.capabilities configSchema.
+ */
+const REALTIME_VOICE_DEFAULT = "cedar";
+const REALTIME_VOICE_OPTIONS = [
+	{ value: "cedar", label: "Cedar (recommended)" },
+	{ value: "marin", label: "Marin" },
+	{ value: "breeze", label: "Breeze" },
+	{ value: "cove", label: "Cove" },
+	{ value: "ember", label: "Ember" },
+	{ value: "juniper", label: "Juniper" },
+	{ value: "maple", label: "Maple" },
+	{ value: "vale", label: "Vale" },
 ];
 
 /**
@@ -720,6 +746,23 @@ const BASE_CONFIG_FIELDS: ConfigSchema["fields"] = [
 		],
 		default: "medium",
 	},
+	{
+		name: "enableRealtime",
+		type: "checkbox",
+		label: "Enable Realtime Voice",
+		required: false,
+		description: "Enable native speech-to-speech via OpenAI Realtime API (gpt-realtime)",
+		default: false,
+	},
+	{
+		name: "realtimeVoice",
+		type: "select",
+		label: "Realtime Voice",
+		required: false,
+		description: "Voice for realtime speech-to-speech sessions",
+		options: REALTIME_VOICE_OPTIONS,
+		default: REALTIME_VOICE_DEFAULT,
+	},
 ];
 
 /**
@@ -732,12 +775,38 @@ const manifest: PluginManifest = {
 	author: "wopr-network",
 	license: "MIT",
 	repository: "https://github.com/wopr-network/wopr-plugin-provider-openai",
-	capabilities: ["provider"],
+	capabilities: ["provider", "realtime-voice"],
 	category: "ai-provider",
-	tags: ["openai", "codex", "provider", "agent-sdk", "oauth"],
+	tags: ["openai", "codex", "provider", "agent-sdk", "oauth", "realtime", "speech-to-speech"],
 	requires: {
 		env: [],
 		network: { outbound: true, hosts: ["api.openai.com"] },
+	},
+	lifecycle: {
+		shutdownBehavior: "graceful",
+	},
+	provides: {
+		capabilities: [
+			{
+				type: "realtime-voice",
+				id: "openai-realtime",
+				displayName: "OpenAI Realtime",
+				tier: "byok", // TODO: remove when ManifestProviderEntry.tier is optional (WOP-752)
+				configSchema: {
+					title: "OpenAI Realtime Voice",
+					description: "Native speech-to-speech via gpt-realtime",
+					fields: [
+						{
+							name: "voice",
+							type: "select",
+							label: "Voice",
+							options: REALTIME_VOICE_OPTIONS,
+							default: REALTIME_VOICE_DEFAULT,
+						},
+					],
+				},
+			},
+		],
 	},
 	configSchema: {
 		title: "OpenAI",
@@ -745,6 +814,9 @@ const manifest: PluginManifest = {
 		fields: BASE_CONFIG_FIELDS,
 	},
 };
+
+// Captured in init() so shutdown() can reverse registrations (WOPRPlugin.shutdown has no ctx param).
+let _pluginCtx: WOPRPluginContext | null = null;
 
 /**
  * Plugin export
@@ -756,6 +828,7 @@ const plugin: WOPRPlugin = {
 	manifest,
 
 	async init(ctx: WOPRPluginContext) {
+		_pluginCtx = ctx;
 		ctx.log.info("Registering OpenAI provider...");
 
 		// Show auth status (like Anthropic)
@@ -778,8 +851,18 @@ const plugin: WOPRPlugin = {
 
 		// Register extension for daemon model endpoint enrichment (WOP-268)
 		if (ctx.registerExtension) {
+			const realtimeEnabled = !!ctx.getConfig?.<{ enableRealtime?: boolean }>()?.enableRealtime;
+			if (realtimeEnabled) {
+				ctx.log.info("Realtime voice enabled (gpt-realtime)");
+			}
 			ctx.registerExtension("provider-openai", {
 				getModelInfo: async () => OPENAI_MODEL_INFO,
+				createRealtimeClient: (credential: string, options?: RealtimeClientOptions) => {
+					if (!realtimeEnabled) {
+						throw new Error("Realtime voice is disabled. Enable `enableRealtime` in plugin config.");
+					}
+					return createRealtimeClient(credential, options);
+				},
 			});
 			ctx.log.info("Registered provider-openai extension");
 		}
@@ -809,6 +892,15 @@ const plugin: WOPRPlugin = {
 
 	async shutdown() {
 		logger.info("[provider-openai] Shutting down");
+		if (_pluginCtx) {
+			if (_pluginCtx.unregisterExtension) {
+				_pluginCtx.unregisterExtension("provider-openai");
+			}
+			if (_pluginCtx.unregisterConfigSchema) {
+				_pluginCtx.unregisterConfigSchema("provider-openai");
+			}
+			_pluginCtx = null;
+		}
 	},
 };
 

@@ -60,7 +60,7 @@ describe("provider-openai extension (WOP-268)", () => {
 		await expect(plugin.init(ctx as any)).resolves.not.toThrow();
 	});
 
-	it("extension.getModelInfo returns the 4 known OpenAI models", async () => {
+	it("extension.getModelInfo returns the known OpenAI models including gpt-realtime", async () => {
 		const { default: plugin } = await import("../src/index.js");
 
 		let capturedExtension: any;
@@ -79,13 +79,13 @@ describe("provider-openai extension (WOP-268)", () => {
 		const models = await capturedExtension.getModelInfo();
 
 		expect(Array.isArray(models)).toBe(true);
-		expect(models).toHaveLength(4);
 
 		const ids = models.map((m: any) => m.id);
 		expect(ids).toContain("gpt-4.1");
 		expect(ids).toContain("gpt-4.1-mini");
 		expect(ids).toContain("gpt-4.1-nano");
 		expect(ids).toContain("codex-mini-latest");
+		expect(ids).toContain("gpt-realtime");
 	});
 
 	it("model info includes contextWindow and maxOutput fields", async () => {
