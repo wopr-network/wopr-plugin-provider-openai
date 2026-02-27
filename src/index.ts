@@ -8,7 +8,8 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Codex, Thread, ThreadOptions } from "@openai/codex-sdk";
 import type {
 	A2AServerConfig,
@@ -18,6 +19,10 @@ import type {
 	WOPRPluginContext,
 } from "@wopr-network/plugin-types";
 import winston from "winston";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PKG_VERSION: string = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8")).version;
 
 // Provider-specific types (not part of the shared plugin-types package)
 interface ModelQueryOptions {
@@ -48,10 +53,7 @@ interface ModelProvider {
 	defaultModel: string;
 	supportedModels: string[];
 	validateCredentials(credentials: string): Promise<boolean>;
-	createClient(
-		credential: string,
-		options?: Record<string, unknown>,
-	): Promise<ModelClient>;
+	createClient(credential: string, options?: Record<string, unknown>): Promise<ModelClient>;
 	getCredentialType(): "api-key" | "oauth" | "custom";
 }
 
@@ -162,12 +164,9 @@ function loadCodexCredentials(): CodexAuthState | null {
 			let email = "";
 			let planType = "";
 			try {
-				const payload = JSON.parse(
-					Buffer.from(data.tokens.id_token.split(".")[1], "base64").toString(),
-				);
+				const payload = JSON.parse(Buffer.from(data.tokens.id_token.split(".")[1], "base64").toString());
 				email = payload.email || "";
-				planType =
-					payload["https://api.openai.com/auth"]?.chatgpt_plan_type || "";
+				planType = payload["https://api.openai.com/auth"]?.chatgpt_plan_type || "";
 			} catch {}
 
 			return {
@@ -235,9 +234,7 @@ function getAuthMethods(): AuthMethodInfo[] {
 			requiresInput: false,
 			setupInstructions:
 				codexAuth?.type === "oauth"
-					? [
-							`Logged in as: ${codexAuth.email || "ChatGPT user"} (${codexAuth.planType || "plus"})`,
-						]
+					? [`Logged in as: ${codexAuth.email || "ChatGPT user"} (${codexAuth.planType || "plus"})`]
 					: ["Run: codex login", "Then restart WOPR"],
 			docsUrl: "https://chatgpt.com/",
 		},
@@ -282,9 +279,7 @@ async function loadCodexSDK(): Promise<typeof import("@openai/codex-sdk")> {
 			const codex = await import("@openai/codex-sdk");
 			CodexSDK = codex;
 		} catch (_error) {
-			throw new Error(
-				"OpenAI Codex SDK not installed. Run: npm install @openai/codex-sdk",
-			);
+			throw new Error("OpenAI Codex SDK not installed. Run: npm install @openai/codex-sdk");
 		}
 	}
 	return CodexSDK;
@@ -294,9 +289,7 @@ async function loadCodexSDK(): Promise<typeof import("@openai/codex-sdk")> {
  * Map temperature (0-1) to Codex reasoning effort
  * Lower temp = more deterministic = higher effort
  */
-function temperatureToEffort(
-	temp?: number,
-): "minimal" | "low" | "medium" | "high" | "xhigh" {
+function temperatureToEffort(temp?: number): "minimal" | "low" | "medium" | "high" | "xhigh" {
 	if (temp === undefined) return "medium";
 	if (temp <= 0.2) return "xhigh";
 	if (temp <= 0.4) return "high";
@@ -315,8 +308,7 @@ const codexProvider: ModelProvider & {
 } = {
 	id: "openai",
 	name: "OpenAI",
-	description:
-		"OpenAI provider (Codex agent SDK) with OAuth, API key, session resumption",
+	description: "OpenAI provider (Codex agent SDK) with OAuth, API key, session resumption",
 	defaultModel: "", // SDK chooses default
 	supportedModels: [], // Populated dynamically via listModels()
 
@@ -332,17 +324,13 @@ const codexProvider: ModelProvider & {
 		// Empty credential is valid if we have OAuth or env-based auth
 		if (!credential || credential === "") {
 			const hasCreds = hasCredentials();
-			logger.info(
-				`[codex] validateCredentials() empty credential, hasCredentials: ${hasCreds}`,
-			);
+			logger.info(`[codex] validateCredentials() empty credential, hasCredentials: ${hasCreds}`);
 			return hasCreds;
 		}
 
 		// API key format: sk-... (OpenAI format)
 		if (!credential.startsWith("sk-")) {
-			logger.info(
-				`[codex] validateCredentials() credential doesn't start with sk-, returning false`,
-			);
+			logger.info(`[codex] validateCredentials() credential doesn't start with sk-, returning false`);
 			return false;
 		}
 
@@ -360,10 +348,7 @@ const codexProvider: ModelProvider & {
 		}
 	},
 
-	async createClient(
-		credential: string,
-		options?: Record<string, unknown>,
-	): Promise<ModelClient> {
+	async createClient(credential: string, options?: Record<string, unknown>): Promise<ModelClient> {
 		return new CodexClient(credential, options);
 	},
 
@@ -403,17 +388,13 @@ class CodexClient implements ModelClient {
 	}
 
 	private async getCodex(): Promise<Codex> {
-		logger.info(
-			`[codex] getCodex() called, this.codex exists: ${!!this.codex}`,
-		);
+		logger.info(`[codex] getCodex() called, this.codex exists: ${!!this.codex}`);
 		if (!this.codex) {
 			logger.info(`[codex] getCodex() loading SDK...`);
 			const { Codex } = await loadCodexSDK();
 			logger.info(`[codex] getCodex() SDK loaded, getting auth...`);
 			const auth = getAuth();
-			logger.info(
-				`[codex] getCodex() auth result: ${auth ? auth.type : "null"}, authType: ${this.authType}`,
-			);
+			logger.info(`[codex] getCodex() auth result: ${auth ? auth.type : "null"}, authType: ${this.authType}`);
 
 			// Hosted mode: if baseUrl is set in options, route through gateway
 			// using tenantToken as the API key for metering/billing.
@@ -422,20 +403,14 @@ class CodexClient implements ModelClient {
 
 			if (hostedBaseUrl) {
 				const key = tenantToken || this.credential || auth?.apiKey;
-				logger.info(
-					`[codex] getCodex() creating Codex in hosted mode (baseUrl=${hostedBaseUrl})...`,
-				);
+				logger.info(`[codex] getCodex() creating Codex in hosted mode (baseUrl=${hostedBaseUrl})...`);
 				this.codex = new Codex({ apiKey: key, baseUrl: hostedBaseUrl });
 				logger.info(`[codex] Initialized in hosted mode`);
 			} else if (this.authType === "oauth") {
-				logger.info(
-					`[codex] getCodex() creating Codex (OAuth via CLI auth)...`,
-				);
+				logger.info(`[codex] getCodex() creating Codex (OAuth via CLI auth)...`);
 				// SDK reads OAuth tokens from ~/.codex/auth.json automatically
 				this.codex = new Codex({ ...this.options });
-				logger.info(
-					`[codex] Initialized with OAuth (${auth?.email || "user"})`,
-				);
+				logger.info(`[codex] Initialized with OAuth (${auth?.email || "user"})`);
 			} else if (this.credential || auth?.apiKey) {
 				const apiKey = this.credential || auth?.apiKey;
 				logger.info(`[codex] getCodex() creating Codex with API key...`);
@@ -452,23 +427,17 @@ class CodexClient implements ModelClient {
 	}
 
 	async *query(opts: ModelQueryOptions): AsyncGenerator<unknown> {
-		logger.info(
-			`[codex] query() starting with prompt: ${opts.prompt.substring(0, 100)}...`,
-		);
+		logger.info(`[codex] query() starting with prompt: ${opts.prompt.substring(0, 100)}...`);
 		const codex = await this.getCodex();
 		logger.info(`[codex] query() got codex instance`);
 
 		try {
 			let thread: Thread;
-			let sessionId: string = "";
-			let _totalInputTokens = 0;
-			let _totalOutputTokens = 0;
 
 			// Session resumption via thread ID
 			if (opts.resume) {
 				logger.info(`[codex] Resuming thread: ${opts.resume}`);
 				thread = codex.resumeThread(opts.resume);
-				sessionId = opts.resume;
 			} else {
 				// Start new thread with options
 				const threadOptions: ThreadOptions = {
@@ -483,12 +452,8 @@ class CodexClient implements ModelClient {
 				}
 
 				// Map temperature to reasoning effort
-				threadOptions.modelReasoningEffort = temperatureToEffort(
-					opts.temperature,
-				);
-				logger.info(
-					`[codex] Reasoning effort: ${threadOptions.modelReasoningEffort}`,
-				);
+				threadOptions.modelReasoningEffort = temperatureToEffort(opts.temperature);
+				logger.info(`[codex] Reasoning effort: ${threadOptions.modelReasoningEffort}`);
 
 				// Merge provider options
 				if (opts.providerOptions) {
@@ -501,9 +466,7 @@ class CodexClient implements ModelClient {
 			// Prepare prompt with images if provided
 			let prompt = opts.prompt;
 			if (opts.images && opts.images.length > 0) {
-				const imageList = opts.images
-					.map((url, i) => `[Image ${i + 1}]: ${url}`)
-					.join("\n");
+				const imageList = opts.images.map((url, i) => `[Image ${i + 1}]: ${url}`).join("\n");
 				prompt = `[User has shared ${opts.images.length} image(s)]\n${imageList}\n\n${opts.prompt}`;
 			}
 
@@ -525,12 +488,13 @@ class CodexClient implements ModelClient {
 				logger.info(`[codex] query() event: ${event.type}`);
 
 				switch (event.type) {
-					case "thread.started":
-						sessionId = event.thread_id || thread.id || "";
+					case "thread.started": {
+						const sessionId = event.thread_id || thread.id || "";
 						// Match Anthropic format: { type: 'system', subtype: 'init', session_id: '...' }
 						yield { type: "system", subtype: "init", session_id: sessionId };
 						logger.info(`[codex] Session ID: ${sessionId}`);
 						break;
+					}
 
 					case "turn.started":
 						yield { type: "system", subtype: "turn_start" };
@@ -602,9 +566,6 @@ class CodexClient implements ModelClient {
 						break;
 
 					case "turn.completed":
-						// Track usage for final result
-						_totalInputTokens += event.usage?.input_tokens || 0;
-						_totalOutputTokens += event.usage?.output_tokens || 0;
 						break;
 
 					case "turn.failed":
@@ -625,9 +586,7 @@ class CodexClient implements ModelClient {
 			};
 		} catch (error) {
 			logger.error("[codex] Query failed:", error);
-			throw new Error(
-				`OpenAI query failed: ${error instanceof Error ? error.message : String(error)}`,
-			);
+			throw new Error(`OpenAI query failed: ${error instanceof Error ? error.message : String(error)}`);
 		}
 	}
 
@@ -727,8 +686,7 @@ const BASE_CONFIG_FIELDS: ConfigSchema["fields"] = [
 		label: "Gateway Base URL",
 		placeholder: "https://api.wopr.bot/v1/openai",
 		required: false,
-		description:
-			"If set, routes traffic through the WOPR gateway for metering and billing",
+		description: "If set, routes traffic through the WOPR gateway for metering and billing",
 	},
 	{
 		name: "tenantToken",
@@ -736,8 +694,7 @@ const BASE_CONFIG_FIELDS: ConfigSchema["fields"] = [
 		label: "Tenant Token",
 		placeholder: "wopr_...",
 		required: false,
-		description:
-			"Gateway auth token (used instead of API key when baseUrl is set)",
+		description: "Gateway auth token (used instead of API key when baseUrl is set)",
 		secret: true,
 	},
 	{
@@ -770,7 +727,7 @@ const BASE_CONFIG_FIELDS: ConfigSchema["fields"] = [
  */
 const manifest: PluginManifest = {
 	name: "@wopr-network/wopr-plugin-provider-openai",
-	version: "2.2.0",
+	version: PKG_VERSION,
 	description: "OpenAI provider plugin with OAuth and API key support",
 	author: "wopr-network",
 	license: "MIT",
@@ -794,7 +751,7 @@ const manifest: PluginManifest = {
  */
 const plugin: WOPRPlugin = {
 	name: "provider-openai",
-	version: "2.2.0",
+	version: PKG_VERSION,
 	description: "OpenAI provider plugin with OAuth and API key support",
 	manifest,
 
