@@ -2,7 +2,7 @@
   "author": "WOPR",
   "dependencies": {
     "@openai/codex-sdk": "^0.106.0",
-    "@wopr-network/plugin-types": "^0.7.1",
+    "@wopr-network/plugin-types": "^0.9.0",
     "winston": "^3.11.0"
   },
   "description": "OpenAI provider plugin for WOPR",
